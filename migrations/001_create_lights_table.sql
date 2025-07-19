@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS lights (
+    id TEXT PRIMARY KEY,
+    is_on BOOLEAN NOT NULL CHECK (is_on IN (0, 1))
+);
