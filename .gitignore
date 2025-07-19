@@ -8,3 +8,5 @@ mr-x.exe
 
 # Arquivos de configurações do editor
 .vscode/
+
+mr-x-compile.*
