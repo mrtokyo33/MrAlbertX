@@ -1,15 +1,10 @@
+# Executáveis compilados do Go
 mr-x
 mr-x.exe
-build/
+/bin/
 
+# Banco de dados local do SQLite
 *.db
-*.db-journal
-database.json
 
+# Arquivos de configurações do editor
 .vscode/
-.idea/
-
-.DS_Store
-Thumbs.db
-
-.env
