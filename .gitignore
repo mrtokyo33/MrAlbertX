@@ -1,0 +1,15 @@
+mr-x
+mr-x.exe
+build/
+
+*.db
+*.db-journal
+database.json
+
+.vscode/
+.idea/
+
+.DS_Store
+Thumbs.db
+
+.env
