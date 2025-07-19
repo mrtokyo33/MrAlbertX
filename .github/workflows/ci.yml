@@ -1,0 +1,48 @@
+# Nome do workflow que aparecerá na aba "Actions" do GitHub
+name: Go Continuous Integration
+
+# Define os gatilhos: quando esta action deve rodar
+on:
+  # Roda quando um commit é enviado para qualquer branch
+  push:
+    branches: [ "**" ]
+  # Roda quando um Pull Request é aberto ou atualizado para o branch 'main'
+  pull_request:
+    branches: [ "main" ]
+
+# Define os "trabalhos" (jobs) que serão executados
+jobs:
+  # Nome do job (pode ser qualquer nome)
+  build-and-test:
+    # Define o tipo de máquina que será usada para rodar o job
+    runs-on: ubuntu-latest
+
+    # Define os passos (steps) do job
+    steps:
+      # Passo 1: Configura o ambiente Go na máquina virtual
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Define a versão do Go a ser usada
+          go-version: '1.22'
+
+      # Passo 2: Baixa o código do seu repositório para a máquina virtual
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Passo 3: Baixa as dependências do projeto (como o Cobra)
+      - name: Install Dependencies
+        run: go mod download
+
+      # Passo 4: Tenta compilar o projeto para garantir que não há erros de compilação
+      - name: Build
+        run: go build -v ./...
+
+      # Passo 5: Roda o 'go vet' para analisar o código em busca de erros suspeitos
+      - name: Vet
+        run: go vet ./...
+
+      # Passo 6: Roda os testes do projeto. Mesmo que você não tenha testes ainda,
+      # este passo garante que a estrutura está pronta para quando você os criar.
+      - name: Test
+        run: go test -v ./...
