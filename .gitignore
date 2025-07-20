@@ -1,12 +1,12 @@
-# Executáveis compilados do Go
 mr-x
 mr-x.exe
 /bin/
 
-# Banco de dados local do SQLite
 *.db
 
-# Arquivos de configurações do editor
 .vscode/
 
 mr-x-compile.*
+
+resultado.txt
+copyFile.sh
