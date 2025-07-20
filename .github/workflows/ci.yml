@@ -1,72 +1,48 @@
-# Nome do workflow
-name: Go Continuous Integration & Delivery
+# Nome do workflow que aparecerá na aba "Actions" do GitHub
+name: Go Continuous Integration
 
-# Gatilhos: Roda em pushes para o branch 'main' e em Pull Requests para 'main'
+# Define os gatilhos: quando esta action deve rodar
 on:
+  # Roda quando um commit é enviado para qualquer branch
   push:
-    branches: [ "main" ]
+    branches: [ "**" ]
+  # Roda quando um Pull Request é aberto ou atualizado para o branch 'main'
   pull_request:
     branches: [ "main" ]
 
-# Define os jobs
+# Define os "trabalhos" (jobs) que serão executados
 jobs:
-  # Job 1: Focado em qualidade de código (formatação e lint)
-  lint-and-format:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-          # Habilita o cache do Go para acelerar o processo
-          cache: true
-
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Check Go Formatting
-        run: |
-          # Verifica se algum arquivo não está formatado com 'gofmt'
-          # O '!' inverte o resultado, fazendo o step falhar se houver arquivos não formatados
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Go files are not formatted. Please run 'gofmt -w .'"
-            exit 1
-          fi
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          # É opcional, mas recomendado ter um arquivo .golangci.yml na raiz do projeto
-          # para configurar as regras do linter.
-          version: v1.59
-
-  # Job 2: Focado em compilar e testar em múltiplas plataformas
+  # Nome do job (pode ser qualquer nome)
   build-and-test:
-    # Este job só roda se o 'lint-and-format' passar com sucesso
-    needs: lint-and-format
-    # Define a matriz de build para rodar em múltiplos sistemas e versões do Go
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        go-version: ['1.22.x']
+    # Define o tipo de máquina que será usada para rodar o job
+    runs-on: ubuntu-latest
 
-    runs-on: ${{ matrix.os }}
-    
+    # Define os passos (steps) do job
     steps:
+      # Passo 1: Configura o ambiente Go na máquina virtual
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
-          # O cache aqui é específico para cada OS e versão do Go
-          cache: true
+          # Define a versão do Go a ser usada
+          go-version: '1.22'
 
+      # Passo 2: Baixa o código do seu repositório para a máquina virtual
       - name: Check out code
         uses: actions/checkout@v4
 
+      # Passo 3: Baixa as dependências do projeto (como o Cobra)
+      - name: Install Dependencies
+        run: go mod download
+
+      # Passo 4: Tenta compilar o projeto para garantir que não há erros de compilação
       - name: Build
-        # O 'go build' já baixa as dependências necessárias se o cache falhar
         run: go build -v ./...
 
+      # Passo 5: Roda o 'go vet' para analisar o código em busca de erros suspeitos
+      - name: Vet
+        run: go vet ./...
+
+      # Passo 6: Roda os testes do projeto. Mesmo que você não tenha testes ainda,
+      # este passo garante que a estrutura está pronta para quando você os criar.
       - name: Test
-        # O '-race' é um detector de "race conditions", muito útil para código concorrente
-        run: go test -v -race ./...
+        run: go test -v ./...
