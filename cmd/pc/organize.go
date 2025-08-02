@@ -3,6 +3,7 @@ package pc
 import (
 	"MrAlbertX/server/cmd/dependencies"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -28,6 +29,5 @@ If no path is provided, it defaults to the user's Downloads folder.`,
 }
 
 func init() {
-	pcCmd.AddCommand(organizeFilesCmd)
 	organizeFilesCmd.Flags().StringVarP(&organizePath, "path", "p", "", "Path to the folder to organize (defaults to user's Downloads folder)")
 }

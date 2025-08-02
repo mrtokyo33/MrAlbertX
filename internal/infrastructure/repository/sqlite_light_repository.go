@@ -3,9 +3,10 @@ package repository
 import (
 	"MrAlbertX/server/internal/core/models"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3" // O driver do SQLite, importado com _
-	"io/ioutil"
 	"log"
+	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type SQLiteLightRepository struct {
@@ -28,7 +29,7 @@ func NewSQLiteLightRepository(dbPath string) *SQLiteLightRepository {
 }
 
 func (r *SQLiteLightRepository) runMigrations() {
-	content, err := ioutil.ReadFile("./migrations/001_create_lights_table.sql")
+	content, err := os.ReadFile("./migrations/001_create_lights_table.sql") // Troca de ioutil.ReadFile para os.ReadFile
 	if err != nil {
 		log.Fatalf("Failed to read migration file: %v", err)
 	}
@@ -81,7 +82,7 @@ func (r *SQLiteLightRepository) FindByID(id string) (*models.Light, error) {
 	err = stmt.QueryRow(id).Scan(&light.ID, &light.IsOn)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // Não é um erro, apenas não encontrou
+			return nil, nil
 		}
 		return nil, err
 	}

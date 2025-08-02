@@ -16,4 +16,4 @@ func (c *ConsoleLightController) SetLightState(lightID string, isOn bool) error 
 
 	fmt.Printf("[HARDWARE MOCK] Light '%s' was turned %s.\n", lightID, status)
 	return nil
-}	
+}

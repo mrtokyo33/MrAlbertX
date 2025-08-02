@@ -39,7 +39,9 @@ func (p *program) run() {
 	)
 
 	reindexAction := func() {
-		log.Println("Changes detected. Starting re-indexing...")
+		log.Println("File system change detected. Starting re-indexing...")
+		// O watcher executa o Reindex interativo, o que não é ideal,
+		// mas é a única função Reindex disponível.
 		if err := p.indexer.Reindex(); err != nil {
 			log.Printf("Error during re-indexing: %v", err)
 		} else {
@@ -47,10 +49,14 @@ func (p *program) run() {
 		}
 	}
 
+	log.Println("Performing initial index...")
 	reindexAction()
 
-	pathsToWatch := indexer.GetDefaultScanPaths()
+	pathsToWatch := indexer.GetDefaultWatcherPaths()
 	for _, path := range pathsToWatch {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			continue
+		}
 		filepath.Walk(path, func(subPath string, info os.FileInfo, err error) error {
 			if err == nil && info.IsDir() {
 				p.watcher.Add(subPath)
@@ -58,7 +64,7 @@ func (p *program) run() {
 			return nil
 		})
 	}
-	log.Println("Watching initial paths.")
+	log.Printf("Now watching %d root paths for changes.", len(pathsToWatch))
 
 	for {
 		select {

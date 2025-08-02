@@ -11,5 +11,9 @@ var pcCmd = &cobra.Command{
 }
 
 func InitPcCmd() *cobra.Command {
+	pcCmd.AddCommand(indexCmd)
+	pcCmd.AddCommand(openCmd)
+	pcCmd.AddCommand(organizeFilesCmd)
+	pcCmd.AddCommand(listCmd)
 	return pcCmd
 }

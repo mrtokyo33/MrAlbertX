@@ -3,83 +3,77 @@ package pc
 import (
 	"MrAlbertX/server/internal/core/models"
 	"MrAlbertX/server/internal/ports"
-	"bufio"
 	"fmt"
-	"log"
-	"os"
-	"strconv"
-	"strings"
-	"time"
+
+	"github.com/AlecAivazis/survey/v2"
 )
 
 type OpenProgramUseCase struct {
-	finder      ports.ProgramFinderPort
+	pipeline    []ports.FindingStrategy
 	sysProvider ports.SystemProviderPort
-	indexer     ports.IndexerPort
-	aliases     map[string]string
-	cachePath   string
 }
 
-func NewOpenProgramUseCase(finder ports.ProgramFinderPort, sysProvider ports.SystemProviderPort, indexer ports.IndexerPort, cachePath string) *OpenProgramUseCase {
+func NewOpenProgramUseCase(pipeline []ports.FindingStrategy, sysProvider ports.SystemProviderPort) *OpenProgramUseCase {
 	return &OpenProgramUseCase{
-		finder:      finder,
+		pipeline:    pipeline,
 		sysProvider: sysProvider,
-		indexer:     indexer,
-		cachePath:   cachePath,
-		aliases: map[string]string{
-			"vscode":    "code",
-			"browser":   "firefox",
-			"edge":      "msedge",
-			"flstudio":  "FL64",
-			"fl studio": "FL64",
-		},
 	}
 }
 
 func (uc *OpenProgramUseCase) Execute(query string) error {
-	info, err := os.Stat(uc.cachePath)
-	if os.IsNotExist(err) || time.Since(info.ModTime()) > 24*time.Hour {
-		log.Println("Program index is missing or stale. Forcing re-index...")
-		if err := uc.indexer.Reindex(); err != nil {
-			return fmt.Errorf("failed to perform fallback re-index: %w", err)
+	var finalResults []*ports.FindResult
+
+	for _, strategy := range uc.pipeline {
+		fmt.Printf("Trying Layer: %s...\n", strategy.Name())
+		results, err := strategy.Find(query)
+		if err != nil {
+			fmt.Printf("  -> Layer %s failed: %v\n", strategy.Name(), err)
+			continue
 		}
+
+		if len(results) > 0 {
+			fmt.Printf("  -> Layer %s found %d potential match(es).\n", strategy.Name(), len(results))
+			finalResults = results
+			break
+		}
+		fmt.Printf("  -> No results from this layer.\n")
 	}
 
-	searchQuery := query
-	if aliasTarget, isAlias := uc.aliases[strings.ToLower(query)]; isAlias {
-		fmt.Printf("Alias found: '%s' -> '%s'. Searching...\n", query, aliasTarget)
-		searchQuery = aliasTarget
-	}
-
-	results, err := uc.finder.Search(searchQuery)
-	if err != nil {
-		return err
-	}
-
-	if len(results) == 0 {
-		return fmt.Errorf("no program found matching '%s'", query)
+	if len(finalResults) == 0 {
+		return fmt.Errorf("could not find any program matching '%s' after trying all strategies", query)
 	}
 
 	var programToLaunch models.Program
-	if len(results) == 1 {
-		programToLaunch = results[0]
-		fmt.Printf("Found one match: '%s'. Launching...\n", programToLaunch.Name)
+	isConfident := len(finalResults) == 1 || (finalResults[0].Score > finalResults[1].Score*1.5)
+
+	if isConfident {
+		programToLaunch = finalResults[0].Program
 	} else {
-		fmt.Println("Found multiple matches. Please choose one:")
-		for i, p := range results {
-			fmt.Printf("  [%d] %s\n", i+1, p.Name)
+		var options []string
+		programMap := make(map[string]models.Program)
+		for i, res := range finalResults {
+			if i >= 5 {
+				break
+			} // Limit options
+			optionStr := fmt.Sprintf("%s (%s)", res.Program.Name, res.Program.Filename)
+			options = append(options, optionStr)
+			programMap[optionStr] = res.Program
 		}
 
-		fmt.Print("Enter number: ")
-		reader := bufio.NewReader(os.Stdin)
-		input, _ := reader.ReadString('\n')
-		choice, err := strconv.Atoi(strings.TrimSpace(input))
-		if err != nil || choice < 1 || choice > len(results) {
-			return fmt.Errorf("invalid choice")
+		selection := ""
+		prompt := &survey.Select{
+			Message: "Found multiple close matches, please choose one:",
+			Options: options,
 		}
-		programToLaunch = results[choice-1]
+		survey.AskOne(prompt, &selection)
+
+		if selection == "" {
+			fmt.Println("Aborted.")
+			return nil
+		}
+		programToLaunch = programMap[selection]
 	}
 
-	fmt.Printf("Action: Attempting to open '%s'...\n", programToLaunch.Name)
+	fmt.Printf("Launching '%s'...\n", programToLaunch.Name)
 	return uc.sysProvider.OpenProgram(programToLaunch.Path)
 }

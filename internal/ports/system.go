@@ -7,9 +7,9 @@ type SystemProviderPort interface {
 	OpenProgram(path string) error
 }
 
-// The Search method now only takes one argument (query).
 type ProgramFinderPort interface {
 	Search(query string) ([]models.Program, error)
+	ListAll() ([]models.Program, error)
 }
 
 type IndexerPort interface {

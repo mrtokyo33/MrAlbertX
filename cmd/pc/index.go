@@ -8,13 +8,10 @@ import (
 
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "Scans the system for programs and builds a searchable cache",
+	Short: "Escaneia o sistema em busca de programas para criar um cache de busca.",
+	Long:  `Executa uma varredura interativa no sistema para encontrar executáveis e atalhos.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		uc := dependencies.GetReindexProgramsUseCase()
 		return uc.Execute()
 	},
-}
-
-func init() {
-	pcCmd.AddCommand(indexCmd)
 }

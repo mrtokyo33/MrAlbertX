@@ -2,7 +2,6 @@ package system
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +16,7 @@ func NewLocalOSProvider() *LocalOSProvider {
 }
 
 func (p *LocalOSProvider) OrganizeFolder(path string) (int, error) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path) // Troca de ioutil.ReadDir para os.ReadDir
 	if err != nil {
 		return 0, fmt.Errorf("could not read directory %s: %w", path, err)
 	}
@@ -57,9 +56,7 @@ func (p *LocalOSProvider) OrganizeFolder(path string) (int, error) {
 func (p *LocalOSProvider) OpenProgram(path string) error {
 	finalPath := path
 
-	// If running in WSL, convert the path to its Windows equivalent
 	if os.Getenv("WSL_DISTRO_NAME") != "" {
-		// Use the wslpath utility to perform the conversion
 		out, err := exec.Command("wslpath", "-w", path).Output()
 		if err == nil {
 			finalPath = strings.TrimSpace(string(out))
